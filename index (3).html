@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --paper:#F1EEE3; --paper-line:#CFC9B4;
+    --ink:#2B2A28; --ink-soft:#6B6559;
+    --sage:#5F7A5A; --sage-dark:#3E5439; --sage-tint:#E1E8DD;
+    --rust:#A45A44; --rust-dark:#7C4232; --rust-tint:#F0DDD3;
+    --slate:#4C6178; --slate-dark:#37485A; --slate-tint:#DCE4EA;
+    --card:#FBF9F2; --border:#D8D2BF;
+    --danger:#963B32;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(var(--paper) 0px, var(--paper) 27px, var(--paper-line) 28px),
+      var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  h1,h2,h3{font-family:'Zilla Slab', serif; margin:0;}
+  button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px; letter-spacing:0.03em; text-transform:uppercase;
+    padding:9px 14px; background:var(--ink); color:var(--paper);
+    border:none; border-radius:3px; cursor:pointer;
+  }
+  button:hover{background:var(--sage-dark);}
+  button.ghost{background:transparent; color:var(--ink-soft); border:1px solid var(--border); text-transform:none; font-size:12px;}
+  button.ghost:hover{border-color:var(--ink-soft); color:var(--ink); background:transparent;}
+  button.danger{background:var(--danger);}
+  button.danger:hover{background:#7a2e27;}
+  button:disabled{opacity:0.5; cursor:default;}
+  input,select,textarea{
+    font-family:'IBM Plex Sans', sans-serif; font-size:14px;
+    padding:9px 10px; border:1px solid var(--border); background:#fff;
+    border-radius:3px; color:var(--ink); width:100%;
+  }
+  input:focus,select:focus,textarea:focus{outline:none; border-color:var(--sage);}
+  label{font-size:12px; color:var(--ink-soft); font-family:'IBM Plex Mono', monospace; display:block; margin-bottom:4px;}
+  .field{margin-bottom:0.9rem;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  /* ---------- AUTH SCREEN ---------- */
+  #auth-screen{
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:1.5rem;
+  }
+  .auth-box{
+    background:var(--card); border:1px solid var(--border); border-radius:4px;
+    padding:2rem 1.75rem; width:100%; max-width:360px;
+  }
+  .auth-box .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:0.3rem;}
+  .auth-box h1{font-size:30px; margin-bottom:1.4rem;}
+  .auth-toggle{display:flex; gap:0; margin-bottom:1.2rem; border:1px solid var(--border); border-radius:3px; overflow:hidden;}
+  .auth-toggle button{flex:1; background:transparent; color:var(--ink-soft); border-radius:0;}
+  .auth-toggle button.active{background:var(--ink); color:var(--paper);}
+  .auth-msg{font-size:13px; margin-top:0.9rem; font-family:'IBM Plex Mono', monospace; min-height:16px;}
+  .auth-msg.err{color:var(--danger);}
+  .auth-msg.ok{color:var(--sage-dark);}
+
+  /* ---------- APP SHELL ---------- */
+  #app{display:none;}
+  #app.visible{display:block;}
+  header.top{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:1.1rem 1.25rem; border-bottom:2px solid var(--ink);
+    background:var(--paper);
+  }
+  header.top h1{font-size:24px;}
+  header.top .user-email{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); display:none;}
+  @media(min-width:640px){ header.top .user-email{display:block;} }
+
+  .shell{display:flex; min-height:calc(100vh - 64px);}
+  nav.side{
+    display:none;
+    flex-direction:column; gap:4px;
+    width:190px; padding:1.25rem 0.75rem; border-right:2px solid var(--ink);
+  }
+  @media(min-width:820px){ nav.side{display:flex;} }
+  nav.side button, nav.bottom button{
+    background:transparent; color:var(--ink-soft); text-align:left;
+    text-transform:none; font-family:'IBM Plex Sans', sans-serif; font-size:14px;
+    padding:10px 12px; border-radius:3px; border-left:3px solid transparent;
+  }
+  nav.side button.active{background:var(--card); color:var(--ink); border-left:3px solid var(--sage);}
+  nav.side button:hover{background:var(--card);}
+
+  nav.bottom{
+    position:fixed; bottom:0; left:0; right:0;
+    display:flex; justify-content:space-around;
+    background:var(--card); border-top:2px solid var(--ink);
+    padding:6px 2px calc(6px + env(safe-area-inset-bottom));
+    z-index:20;
+  }
+  @media(min-width:820px){ nav.bottom{display:none;} }
+  nav.bottom button{
+    flex:1; text-align:center; font-size:10.5px; padding:6px 2px;
+    border-left:none; border-top:3px solid transparent; border-radius:0;
+  }
+  nav.bottom button.active{border-top:3px solid var(--sage); color:var(--ink); background:transparent;}
+  nav.bottom button .ic{display:block; font-size:16px; margin-bottom:2px; font-family:'IBM Plex Mono',monospace;}
+
+  main.content{
+    flex:1; padding:1.5rem 1.25rem calc(2rem + 70px);
+    max-width:900px; margin:0 auto; width:100%;
+  }
+  @media(min-width:820px){ main.content{padding:2rem 2rem 2.5rem;} }
+
+  .view{display:none;}
+  .view.active{display:block;}
+
+  section.card{
+    background:var(--card); border:1px solid var(--border); border-radius:3px;
+    padding:1.4rem 1.4rem 1.6rem; margin-bottom:1.5rem; position:relative;
+  }
+  section.card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:6px;
+    background-image:radial-gradient(circle, var(--paper) 3px, transparent 3.2px);
+    background-size:16px 12px; background-position:4px -6px;
+  }
+  h2.card-title{font-size:20px; margin:0.4rem 0 0.15rem;}
+  .card-sub{font-size:13px; color:var(--ink-soft); margin:0 0 1.1rem;}
+
+  /* ---------- DASHBOARD ---------- */
+  .tile-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:1.5rem;}
+  @media(min-width:600px){ .tile-grid{grid-template-columns:repeat(3,1fr);} }
+  .tile{padding:14px 14px 12px; border-radius:3px; background:var(--sage-tint);}
+  .tile.expense{background:var(--rust-tint);}
+  .tile.loan{background:var(--slate-tint);}
+  .tile.plain{background:var(--card); border:1px solid var(--border);}
+  .tile .tile-label{font-family:'IBM Plex Mono', monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--sage-dark);}
+  .tile.expense .tile-label{color:var(--rust-dark);}
+  .tile.loan .tile-label{color:var(--slate-dark);}
+  .tile.plain .tile-label{color:var(--ink-soft);}
+  .tile .tile-value{font-family:'IBM Plex Mono', monospace; font-size:20px; font-weight:600; margin-top:3px;}
+
+  .activity-row{display:flex; justify-content:space-between; gap:10px; padding:8px 0; border-bottom:1px dashed var(--border); font-size:13.5px;}
+  .activity-row:last-child{border-bottom:none;}
+  .activity-row .a-meta{font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft);}
+  .activity-row .a-amt{font-family:'IBM Plex Mono', monospace; font-weight:600; white-space:nowrap;}
+  .activity-row .a-amt.pos{color:var(--sage-dark);}
+  .activity-row .a-amt.neg{color:var(--rust-dark);}
+
+  /* ---------- TODO ---------- */
+  ul.list{list-style:none; margin:0; padding:0;}
+  ul.list li{display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px dashed var(--border); font-size:14.5px;}
+  ul.list li:last-child{border-bottom:none;}
+  .checkbox{
+    appearance:none; -webkit-appearance:none; width:18px; height:18px; min-width:18px;
+    border:1.5px solid var(--sage-dark); border-radius:3px; margin-top:2px; cursor:pointer; position:relative; background:#fff;
+  }
+  .checkbox:checked{background:var(--sage);}
+  .checkbox:checked::after{content:""; position:absolute; left:5px; top:1px; width:5px; height:9px; border:solid #fff; border-width:0 2px 2px 0; transform:rotate(40deg);}
+  .item-text{flex:1; word-break:break-word;}
+  .item-del{background:none; border:none; color:var(--ink-soft); font-family:'IBM Plex Mono', monospace; font-size:12px; cursor:pointer; padding:2px 4px; text-transform:none;}
+  .item-del:hover{color:var(--danger);}
+  .empty-note{font-size:13px; color:var(--ink-soft); font-style:italic; padding:8px 0;}
+  details.done-wrap{margin-top:1rem;}
+  details.done-wrap summary{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); cursor:pointer; padding:6px 0; border-top:2px solid var(--ink);}
+  details.done-wrap ul.list li .item-text{text-decoration:line-through; color:var(--ink-soft);}
+
+  /* ---------- MONEY ---------- */
+  .receipt{background:#fff; border:1px solid var(--border); padding:1rem 1.1rem; font-family:'IBM Plex Mono', monospace; font-size:13.5px; margin-top:0.9rem;}
+  .receipt-row{display:flex; justify-content:space-between; padding:4px 0;}
+  .receipt-row.total{border-top:1px dashed var(--border); margin-top:6px; padding-top:8px; font-weight:600;}
+  .receipt-row .label{color:var(--ink-soft);}
+
+  /* ---------- TRANSACTIONS ---------- */
+  .type-toggle{display:flex; gap:0; border:1px solid var(--border); border-radius:3px; overflow:hidden; margin-bottom:0.9rem;}
+  .type-toggle button{flex:1; background:transparent; color:var(--ink-soft); border-radius:0;}
+  .type-toggle button.active.income{background:var(--sage); color:#fff;}
+  .type-toggle button.active.expense{background:var(--rust); color:#fff;}
+
+  /* ---------- LOANS ---------- */
+  .loan-card{border:1px solid var(--border); border-radius:3px; padding:12px 14px; margin-bottom:10px; background:#fff;}
+  .loan-card .loan-head{display:flex; justify-content:space-between; align-items:baseline;}
+  .loan-card .loan-name{font-family:'Zilla Slab', serif; font-size:17px; font-weight:600;}
+  .loan-bar-track{height:8px; background:var(--paper-line); border-radius:4px; margin:8px 0 6px; overflow:hidden;}
+  .loan-bar-fill{height:100%; background:var(--slate);}
+  .loan-meta{display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft);}
+  .loan-actions{display:flex; gap:8px; margin-top:10px;}
+
+  /* ---------- UPI ---------- */
+  .upload-row{display:flex; gap:8px; align-items:center; margin-bottom:1rem; flex-wrap:wrap;}
+  .gallery{display:grid; grid-template-columns:repeat(auto-fill, minmax(120px,1fr)); gap:10px;}
+  .shot{border:1px solid var(--border); border-radius:3px; overflow:hidden; background:#fff; cursor:pointer;}
+  .shot img{width:100%; height:120px; object-fit:cover; display:block; background:var(--sage-tint);}
+  .shot .shot-meta{padding:6px 8px; font-size:11px; font-family:'IBM Plex Mono', monospace; color:var(--ink-soft);}
+  .lightbox{position:fixed; inset:0; background:rgba(20,18,15,0.85); display:none; align-items:center; justify-content:center; z-index:50; padding:2rem;}
+  .lightbox.open{display:flex;}
+  .lightbox img{max-width:100%; max-height:80vh; border-radius:4px;}
+  .lightbox-close{position:absolute; top:1.2rem; right:1.4rem; background:transparent; border:1px solid var(--paper); color:var(--paper);}
+
+  .status{font-size:13px; margin-top:0.8rem; font-family:'IBM Plex Mono', monospace;}
+  .status.err{color:var(--danger);}
+  .status.ok{color:var(--sage-dark);}
+  .loading-line{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); padding:1rem 0;}
+</style>
+</head>
+<body>
+
+<!-- ============ AUTH ============ -->
+<div id="auth-screen">
+  <div class="auth-box">
+    <p class="eyebrow">Personal ledger</p>
+    <h1>My Ledger</h1>
+    <div class="auth-toggle">
+      <button id="tab-signin" class="active">Sign in</button>
+      <button id="tab-signup">Sign up</button>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="auth-email" autocomplete="email">
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="auth-password" autocomplete="current-password">
+    </div>
+    <button id="auth-submit" style="width:100%;">Sign in</button>
+    <p class="auth-msg" id="auth-msg"></p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <header class="top">
+    <h1>My Ledger</h1>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span class="user-email" id="user-email"></span>
+      <button class="ghost" id="logout-btn">Log out</button>
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav class="side" id="nav-side"></nav>
+
+    <main class="content">
+
+      <!-- HOME -->
+      <div class="view" data-view="home">
+        <div class="tile-grid" id="tiles"></div>
+        <section class="card">
+          <h2 class="card-title">Recent activity</h2>
+          <p class="card-sub">Last 8 things logged, across everything.</p>
+          <div id="recent-activity"></div>
+        </section>
+      </div>
+
+      <!-- TODO -->
+      <div class="view" data-view="todo">
+        <section class="card">
+          <h2 class="card-title" id="todo-title">To-do</h2>
+          <p class="card-sub">Check a task off and it moves to Done below.</p>
+          <div class="row2" style="margin-bottom:0.9rem;">
+            <input type="text" id="todo-input" placeholder="Add a task" maxlength="200">
+            <button id="todo-add">Add</button>
+          </div>
+          <ul class="list" id="todo-active"></ul>
+          <p class="empty-note" id="todo-empty" style="display:none;">Nothing on the list. Add your first task.</p>
+          <details class="done-wrap">
+            <summary id="done-summary">Done (0)</summary>
+            <ul class="list" id="todo-done"></ul>
+          </details>
+          <p class="status" id="todo-status"></p>
+        </section>
+      </div>
+
+      <!-- MONEY -->
+      <div class="view" data-view="money">
+        <section class="card">
+          <h2 class="card-title">Money calculator</h2>
+          <p class="card-sub">For every 100 you earn, set this much aside.</p>
+          <div class="row2">
+            <div class="field">
+              <label>Rate per 100</label>
+              <input type="number" id="rate-input" value="2.5" step="0.1" min="0">
+            </div>
+            <div class="field">
+              <label>Amount earned</label>
+              <input type="number" id="amount-input" placeholder="0.00" min="0" step="0.01">
+            </div>
+          </div>
+          <button id="amount-add">Log it</button>
+          <div class="receipt" id="receipt">
+            <div class="receipt-row"><span class="label">Earned</span><span id="r-earned">₹0.00</span></div>
+            <div class="receipt-row"><span class="label">Set aside</span><span id="r-fee">₹0.00</span></div>
+            <div class="receipt-row total"><span class="label">You keep</span><span id="r-net">₹0.00</span></div>
+          </div>
+          <p class="status" id="money-status"></p>
+        </section>
+        <section class="card">
+          <h2 class="card-title">History</h2>
+          <div id="money-history"></div>
+        </section>
+      </div>
+
+      <!-- CASH (INCOME/EXPENSE) -->
+      <div class="view" data-view="cash">
+        <section class="card">
+          <h2 class="card-title">Income &amp; expense</h2>
+          <p class="card-sub">Log what came in and what went out.</p>
+          <div class="type-toggle">
+            <button id="type-income" class="active income">Income</button>
+            <button id="type-expense" class="expense">Expense</button>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Amount</label><input type="number" id="txn-amount" placeholder="0.00" min="0" step="0.01"></div>
+            <div class="field"><label>Category</label><input type="text" id="txn-category" placeholder="e.g. Food, Salary"></div>
+          </div>
+          <div class="row2">
+            <div class="field"><label>Date</label><input type="date" id="txn-date"></div>
+            <div class="field"><label>Note (optional)</label><input type="text" id="txn-note" placeholder="Note"></div>
+          </div>
+          <button id="txn-add">Add entry</button>
+          <p class="status" id="txn-status"></p>
+        </section>
+        <section class="card">
+          <div class="tile-grid" style="margin-bottom:1rem;">
+            <div class="tile"><div class="tile-label">Total income</div><div class="tile-value" id="cash-income">₹0</div></div>
+            <div class="tile expense"><div class="tile-label">Total expense</div><div class="tile-value" id="cash-expense">₹0</div></div>
+            <div class="tile plain"><div class="tile-label">Net</div><div class="tile-value" id="cash-net">₹0</div></div>
+          </div>
+          <h2 class="card-title">All entries</h2>
+          <div id="txn-list"></div>
+        </section>
+      </div>
+
+      <!-- LOANS -->
+      <div class="view" data-view="loans">
+        <section class="card">
+          <h2 class="card-title">Add a loan</h2>
+          <div class="row2">
+            <div class="field"><label>Name</label><input type="text" id="loan-name" placeholder="e.g. Car loan"></div>
+            <div class="field"><label>Principal amount</label><input type="number" id="loan-principal" placeholder="0.00" min="0" step="0.01"></div>
+          </div>
+          <div class="field"><label>Note (optional)</label><input type="text" id="loan-note" placeholder="Lender, rate, due date..."></div>
+          <button id="loan-add">Add loan</button>
+          <p class="status" id="loan-status"></p>
+        </section>
+        <section class="card">
+          <h2 class="card-title">Your loans</h2>
+          <div id="loans-list"></div>
+        </section>
+      </div>
+
+      <!-- UPI -->
+      <div class="view" data-view="upi">
+        <section class="card">
+          <h2 class="card-title">UPI screenshots</h2>
+          <p class="card-sub">Upload a payment screenshot to keep a record of it.</p>
+          <div class="upload-row">
+            <input type="file" id="upi-file" accept="image/*" style="width:auto; flex:1;">
+          </div>
+          <div class="row2">
+            <div class="field"><label>Amount (optional)</label><input type="number" id="upi-amount" placeholder="0.00" step="0.01"></div>
+            <div class="field"><label>Note (optional)</label><input type="text" id="upi-note" placeholder="What was this for?"></div>
+          </div>
+          <button id="upi-upload">Upload</button>
+          <p class="status" id="upi-status"></p>
+        </section>
+        <section class="card">
+          <h2 class="card-title">Gallery</h2>
+          <div class="gallery" id="upi-gallery"></div>
+        </section>
+      </div>
+
+    </main>
+  </div>
+
+  <nav class="bottom" id="nav-bottom"></nav>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightbox-close">Close</button>
+  <img id="lightbox-img" src="" alt="Screenshot">
+</div>
+
+<script>
+// ===================================================================
+// CONFIG — replace with your own Supabase project values
+// ===================================================================
+const SUPABASE_URL = 'https://ioghyjfnfxzzacvwiomm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvZ2h5amZuZnh6emFjdndpb21tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5NzgxOTQsImV4cCI6MjEwMzU1NDE5NH0.R91dQQu8uoBe6XYNaIrY3WPREbyG9OraEt0GGGdwTgU';
+// ===================================================================
+
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const NAV_ITEMS = [
+  { key:'home',  label:'Home',  ic:'H' },
+  { key:'todo',  label:'To-do', ic:'T' },
+  { key:'money', label:'Money', ic:'M' },
+  { key:'cash',  label:'Cash',  ic:'C' },
+  { key:'loans', label:'Loans', ic:'L' },
+  { key:'upi',   label:'UPI',   ic:'U' },
+];
+
+let state = {
+  todos: [], moneyEntries: [], txns: [], loans: [], loanPayments: [], upi: [],
+  txnType: 'income', currentView: 'home', userEmail: ''
+};
+
+function fmt(n){ return '₹' + Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtShort(n){ return '₹' + Number(n||0).toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function flash(elId, msg, cls){
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' '+cls : '');
+  setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; }, 3500);
+}
+
+// ---------------- AUTH ----------------
+let authMode = 'signin';
+document.getElementById('tab-signin').onclick = ()=>{ authMode='signin'; document.getElementById('tab-signin').classList.add('active'); document.getElementById('tab-signup').classList.remove('active'); document.getElementById('auth-submit').textContent='Sign in'; };
+document.getElementById('tab-signup').onclick = ()=>{ authMode='signup'; document.getElementById('tab-signup').classList.add('active'); document.getElementById('tab-signin').classList.remove('active'); document.getElementById('auth-submit').textContent='Sign up'; };
+
+document.getElementById('auth-submit').onclick = async ()=>{
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const msg = document.getElementById('auth-msg');
+  msg.className = 'auth-msg';
+  if(!email || !password){ msg.textContent='Enter email and password.'; msg.className='auth-msg err'; return; }
+  try{
+    if(authMode==='signin'){
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error){ msg.textContent = error.message; msg.className='auth-msg err'; return; }
+    }else{
+      const { error } = await sb.auth.signUp({ email, password });
+      if(error){ msg.textContent = error.message; msg.className='auth-msg err'; return; }
+      msg.textContent = 'Account created. Check your email if confirmation is required, then sign in.';
+      msg.className='auth-msg ok';
+    }
+  }catch(e){
+    msg.textContent = 'Something went wrong. Check your Supabase config at the top of the file.';
+    msg.className='auth-msg err';
+  }
+};
+
+document.getElementById('logout-btn').onclick = async ()=>{ await sb.auth.signOut(); };
+
+sb.auth.onAuthStateChange((_event, session)=>{
+  if(session && session.user){
+    state.userEmail = session.user.email;
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    document.getElementById('user-email').textContent = state.userEmail;
+    loadEverything();
+  }else{
+    document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('app').classList.remove('visible');
+  }
+});
+
+// ---------------- NAV ----------------
+function buildNav(){
+  const side = document.getElementById('nav-side');
+  const bottom = document.getElementById('nav-bottom');
+  side.innerHTML = ''; bottom.innerHTML = '';
+  NAV_ITEMS.forEach(item=>{
+    const b1 = document.createElement('button');
+    b1.textContent = item.label;
+    b1.dataset.key = item.key;
+    b1.onclick = ()=>setView(item.key);
+    side.appendChild(b1);
+
+    const b2 = document.createElement('button');
+    b2.dataset.key = item.key;
+    b2.innerHTML = `<span class="ic">${item.ic}</span>${item.label}`;
+    b2.onclick = ()=>setView(item.key);
+    bottom.appendChild(b2);
+  });
+}
+function setView(key){
+  state.currentView = key;
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.dataset.view===key));
+  document.querySelectorAll('nav.side button, nav.bottom button').forEach(b=>b.classList.toggle('active', b.dataset.key===key));
+  if(key==='home') renderDashboard();
+}
+buildNav();
+setView('home');
+
+// ---------------- LOAD ALL DATA ----------------
+async function loadEverything(){
+  await Promise.all([loadTodos(), loadMoney(), loadTxns(), loadLoans(), loadUpi()]);
+  renderDashboard();
+}
+
+// ================= TODO =================
+async function loadTodos(){
+  const { data, error } = await sb.from('todos').select('*').order('created_at', { ascending:true });
+  if(!error) state.todos = data || [];
+  renderTodos();
+}
+function renderTodos(){
+  const active = state.todos.filter(t=>!t.done);
+  const done = state.todos.filter(t=>t.done);
+  document.getElementById('todo-title').textContent = active.length ? `To-do (${active.length})` : 'To-do';
+  document.getElementById('done-summary').textContent = `Done (${done.length})`;
+
+  const activeList = document.getElementById('todo-active');
+  const emptyNote = document.getElementById('todo-empty');
+  activeList.innerHTML = '';
+  emptyNote.style.display = active.length ? 'none' : 'block';
+  active.forEach(t=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<input type="checkbox" class="checkbox" data-id="${t.id}"><span class="item-text"></span><button class="item-del" data-id="${t.id}">remove</button>`;
+    li.querySelector('.item-text').textContent = t.text;
+    activeList.appendChild(li);
+  });
+
+  const doneList = document.getElementById('todo-done');
+  doneList.innerHTML = '';
+  if(done.length===0){ doneList.innerHTML = '<p class="empty-note">Nothing done yet.</p>'; }
+  done.slice().reverse().forEach(t=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<input type="checkbox" class="checkbox" data-id="${t.id}" checked><span class="item-text"></span><button class="item-del" data-id="${t.id}">remove</button>`;
+    li.querySelector('.item-text').textContent = t.text;
+    doneList.appendChild(li);
+  });
+
+  document.querySelectorAll('#todo-active .checkbox, #todo-done .checkbox').forEach(cb=>cb.addEventListener('change', onTodoToggle));
+  document.querySelectorAll('#todo-active .item-del, #todo-done .item-del').forEach(btn=>btn.addEventListener('click', onTodoDelete));
+}
+async function onTodoToggle(e){
+  const id = e.target.getAttribute('data-id');
+  const done = e.target.checked;
+  const { error } = await sb.from('todos').update({ done, done_at: done ? new Date().toISOString() : null }).eq('id', id);
+  if(error){ flash('todo-status','Could not update.','err'); return; }
+  await loadTodos();
+  if(state.currentView==='home') renderDashboard();
+}
+async function onTodoDelete(e){
+  const id = e.target.getAttribute('data-id');
+  const { error } = await sb.from('todos').delete().eq('id', id);
+  if(error){ flash('todo-status','Could not delete.','err'); return; }
+  await loadTodos();
+}
+document.getElementById('todo-add').onclick = addTodo;
+document.getElementById('todo-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addTodo(); });
+async function addTodo(){
+  const input = document.getElementById('todo-input');
+  const text = input.value.trim();
+  if(!text){ flash('todo-status','Enter a task first.','err'); return; }
+  const { error } = await sb.from('todos').insert({ text });
+  if(error){ flash('todo-status','Could not save.','err'); return; }
+  input.value = '';
+  await loadTodos();
+  if(state.currentView==='home') renderDashboard();
+}
+
+// ================= MONEY =================
+async function loadMoney(){
+  const { data, error } = await sb.from('money_entries').select('*').order('created_at', { ascending:false });
+  if(!error) state.moneyEntries = data || [];
+  renderMoney();
+}
+function currentRate(){
+  const v = parseFloat(document.getElementById('rate-input').value);
+  return isNaN(v)||v<0 ? 2.5 : v;
+}
+function previewMoney(){
+  const amt = parseFloat(document.getElementById('amount-input').value)||0;
+  const rate = currentRate();
+  const fee = amt*(rate/100);
+  document.getElementById('r-earned').textContent = fmt(amt);
+  document.getElementById('r-fee').textContent = fmt(fee);
+  document.getElementById('r-net').textContent = fmt(amt-fee);
+}
+document.getElementById('amount-input').addEventListener('input', previewMoney);
+document.getElementById('rate-input').addEventListener('input', previewMoney);
+document.getElementById('amount-add').onclick = addMoneyEntry;
+document.getElementById('amount-input').addEventListener('keydown', e=>{ if(e.key==='Enter') addMoneyEntry(); });
+async function addMoneyEntry(){
+  const amountEl = document.getElementById('amount-input');
+  const amt = parseFloat(amountEl.value);
+  if(!amt || amt<=0){ flash('money-status','Enter an amount first.','err'); return; }
+  const rate = currentRate();
+  const fee = amt*(rate/100);
+  const { error } = await sb.from('money_entries').insert({ amount:amt, rate, fee, net:amt-fee });
+  if(error){ flash('money-status','Could not save.','err'); return; }
+  amountEl.value=''; previewMoney();
+  await loadMoney();
+  if(state.currentView==='home') renderDashboard();
+}
+function renderMoney(){
+  const list = document.getElementById('money-history');
+  list.innerHTML = '';
+  if(state.moneyEntries.length===0){ list.innerHTML = '<p class="empty-note">No entries logged yet.</p>'; return; }
+  state.moneyEntries.slice(0,30).forEach(e=>{
+    const d = new Date(e.created_at);
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+    row.innerHTML = `<span>${fmt(e.amount)} <span class="a-meta">→ set aside ${fmt(e.fee)}</span></span><span class="a-meta">${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span>`;
+    list.appendChild(row);
+  });
+}
+
+// ================= TRANSACTIONS (income/expense) =================
+document.getElementById('type-income').onclick = ()=>setTxnType('income');
+document.getElementById('type-expense').onclick = ()=>setTxnType('expense');
+function setTxnType(t){
+  state.txnType = t;
+  document.getElementById('type-income').classList.toggle('active', t==='income');
+  document.getElementById('type-expense').classList.toggle('active', t==='expense');
+}
+document.getElementById('txn-date').valueAsDate = new Date();
+
+async function loadTxns(){
+  const { data, error } = await sb.from('transactions').select('*').order('occurred_on', { ascending:false }).order('created_at', { ascending:false });
+  if(!error) state.txns = data || [];
+  renderTxns();
+}
+document.getElementById('txn-add').onclick = addTxn;
+async function addTxn(){
+  const amount = parseFloat(document.getElementById('txn-amount').value);
+  const category = document.getElementById('txn-category').value.trim();
+  const note = document.getElementById('txn-note').value.trim();
+  const occurred_on = document.getElementById('txn-date').value || new Date().toISOString().slice(0,10);
+  if(!amount || amount<=0){ flash('txn-status','Enter an amount first.','err'); return; }
+  const { error } = await sb.from('transactions').insert({ type:state.txnType, category:category||null, amount, note:note||null, occurred_on });
+  if(error){ flash('txn-status','Could not save.','err'); return; }
+  document.getElementById('txn-amount').value=''; document.getElementById('txn-category').value=''; document.getElementById('txn-note').value='';
+  flash('txn-status','Saved.','ok');
+  await loadTxns();
+  if(state.currentView==='home') renderDashboard();
+}
+async function deleteTxn(id){
+  const { error } = await sb.from('transactions').delete().eq('id', id);
+  if(!error){ await loadTxns(); if(state.currentView==='home') renderDashboard(); }
+}
+function renderTxns(){
+  const income = state.txns.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
+  const expense = state.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
+  document.getElementById('cash-income').textContent = fmtShort(income);
+  document.getElementById('cash-expense').textContent = fmtShort(expense);
+  document.getElementById('cash-net').textContent = fmtShort(income-expense);
+
+  const list = document.getElementById('txn-list');
+  list.innerHTML = '';
+  if(state.txns.length===0){ list.innerHTML = '<p class="empty-note">No entries yet.</p>'; return; }
+  state.txns.forEach(t=>{
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+    const d = new Date(t.occurred_on);
+    row.innerHTML = `
+      <span>${t.category||(t.type==='income'?'Income':'Expense')} <span class="a-meta">${t.note?('— '+t.note):''} · ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</span></span>
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span class="a-amt ${t.type==='income'?'pos':'neg'}">${t.type==='income'?'+':'-'}${fmt(t.amount)}</span>
+        <button class="item-del" data-id="${t.id}">remove</button>
+      </span>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.item-del').forEach(b=>b.addEventListener('click', e=>deleteTxn(e.target.getAttribute('data-id'))));
+}
+
+// ================= LOANS =================
+async function loadLoans(){
+  const { data:loans, error:e1 } = await sb.from('loans').select('*').order('created_at', { ascending:false });
+  const { data:payments, error:e2 } = await sb.from('loan_payments').select('*').order('paid_on', { ascending:false });
+  if(!e1) state.loans = loans || [];
+  if(!e2) state.loanPayments = payments || [];
+  renderLoans();
+}
+document.getElementById('loan-add').onclick = addLoan;
+async function addLoan(){
+  const name = document.getElementById('loan-name').value.trim();
+  const principal = parseFloat(document.getElementById('loan-principal').value);
+  const note = document.getElementById('loan-note').value.trim();
+  if(!name || !principal || principal<=0){ flash('loan-status','Enter a name and principal amount.','err'); return; }
+  const { error } = await sb.from('loans').insert({ name, principal, remaining:principal, note:note||null });
+  if(error){ flash('loan-status','Could not save.','err'); return; }
+  // Taking a loan is cash coming in — log it so it counts toward Net.
+  await sb.from('transactions').insert({ type:'income', category:'Loan received', amount:principal, note:`Loan: ${name}`, occurred_on:new Date().toISOString().slice(0,10) });
+  document.getElementById('loan-name').value=''; document.getElementById('loan-principal').value=''; document.getElementById('loan-note').value='';
+  flash('loan-status','Loan added.','ok');
+  await Promise.all([loadLoans(), loadTxns()]);
+  if(state.currentView==='home') renderDashboard();
+}
+async function payLoan(loanId){
+  const amountStr = prompt('Payment amount:');
+  const amount = parseFloat(amountStr);
+  if(!amount || amount<=0) return;
+  const loan = state.loans.find(l=>l.id===loanId);
+  if(!loan) return;
+  const newRemaining = Math.max(0, Number(loan.remaining) - amount);
+  const { error:e1 } = await sb.from('loan_payments').insert({ loan_id:loanId, amount });
+  const { error:e2 } = await sb.from('loans').update({ remaining:newRemaining }).eq('id', loanId);
+  if(e1||e2){ flash('loan-status','Could not save payment.','err'); return; }
+  // Paying a loan is cash going out — log it so it cuts from Net too.
+  await sb.from('transactions').insert({ type:'expense', category:'Loan repayment', amount, note:`Loan: ${loan.name}`, occurred_on:new Date().toISOString().slice(0,10) });
+  await Promise.all([loadLoans(), loadTxns()]);
+  if(state.currentView==='home') renderDashboard();
+}
+async function deleteLoan(loanId){
+  if(!confirm('Delete this loan and its payment history?')) return;
+  const { error } = await sb.from('loans').delete().eq('id', loanId);
+  if(!error){ await loadLoans(); if(state.currentView==='home') renderDashboard(); }
+}
+function renderLoans(){
+  const list = document.getElementById('loans-list');
+  list.innerHTML = '';
+  if(state.loans.length===0){ list.innerHTML = '<p class="empty-note">No loans added yet.</p>'; return; }
+  state.loans.forEach(l=>{
+    const pct = l.principal>0 ? Math.min(100, ((l.principal-l.remaining)/l.principal)*100) : 0;
+    const div = document.createElement('div');
+    div.className = 'loan-card';
+    div.innerHTML = `
+      <div class="loan-head"><span class="loan-name">${l.name}</span><span class="a-meta" style="font-family:'IBM Plex Mono',monospace;">${fmt(l.remaining)} left</span></div>
+      <div class="loan-bar-track"><div class="loan-bar-fill" style="width:${pct}%"></div></div>
+      <div class="loan-meta"><span>Principal ${fmt(l.principal)}</span><span>${pct.toFixed(0)}% paid</span></div>
+      <div class="loan-actions">
+        <button data-pay="${l.id}">Add payment</button>
+        <button class="ghost" data-del="${l.id}">Delete</button>
+      </div>`;
+    list.appendChild(div);
+  });
+  list.querySelectorAll('[data-pay]').forEach(b=>b.addEventListener('click', e=>payLoan(e.target.getAttribute('data-pay'))));
+  list.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click', e=>deleteLoan(e.target.getAttribute('data-del'))));
+}
+
+// ================= UPI SCREENSHOTS =================
+async function loadUpi(){
+  const { data, error } = await sb.from('upi_screenshots').select('*').order('created_at', { ascending:false });
+  if(error){ state.upi = []; renderUpi(); return; }
+  state.upi = data || [];
+  const { data:{ user } } = await sb.auth.getUser();
+  for(const shot of state.upi){
+    const { data:signed } = await sb.storage.from('upi-screenshots').createSignedUrl(shot.image_path, 3600);
+    shot._url = signed ? signed.signedUrl : '';
+  }
+  renderUpi();
+}
+document.getElementById('upi-upload').onclick = uploadUpi;
+async function uploadUpi(){
+  const fileInput = document.getElementById('upi-file');
+  const file = fileInput.files[0];
+  if(!file){ flash('upi-status','Choose an image first.','err'); return; }
+  const amount = document.getElementById('upi-amount').value;
+  const note = document.getElementById('upi-note').value.trim();
+  const { data:{ user } } = await sb.auth.getUser();
+  if(!user){ flash('upi-status','Not signed in.','err'); return; }
+  const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  const { error:upErr } = await sb.storage.from('upi-screenshots').upload(path, file);
+  if(upErr){ flash('upi-status','Upload failed: '+upErr.message,'err'); return; }
+  const { error:insErr } = await sb.from('upi_screenshots').insert({ image_path:path, amount: amount?parseFloat(amount):null, note: note||null });
+  if(insErr){ flash('upi-status','Could not save record.','err'); return; }
+  fileInput.value=''; document.getElementById('upi-amount').value=''; document.getElementById('upi-note').value='';
+  flash('upi-status','Uploaded.','ok');
+  await loadUpi();
+}
+function renderUpi(){
+  const gallery = document.getElementById('upi-gallery');
+  gallery.innerHTML = '';
+  if(state.upi.length===0){ gallery.innerHTML = '<p class="empty-note">No screenshots uploaded yet.</p>'; return; }
+  state.upi.forEach(s=>{
+    const d = new Date(s.created_at);
+    const div = document.createElement('div');
+    div.className = 'shot';
+    div.innerHTML = `<img src="${s._url}" alt="UPI screenshot" data-url="${s._url}"><div class="shot-meta">${s.amount?fmt(s.amount):''} ${d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div>`;
+    div.querySelector('img').addEventListener('click', ()=>openLightbox(s._url));
+    gallery.appendChild(div);
+  });
+}
+function openLightbox(url){
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+document.getElementById('lightbox-close').onclick = ()=>document.getElementById('lightbox').classList.remove('open');
+document.getElementById('lightbox').addEventListener('click', e=>{ if(e.target.id==='lightbox') e.currentTarget.classList.remove('open'); });
+
+// ================= DASHBOARD =================
+function renderDashboard(){
+  const income = state.txns.filter(t=>t.type==='income').reduce((s,t)=>s+Number(t.amount),0);
+  const expense = state.txns.filter(t=>t.type==='expense').reduce((s,t)=>s+Number(t.amount),0);
+  const setAside = state.moneyEntries.reduce((s,e)=>s+Number(e.fee),0);
+  const loanRemaining = state.loans.reduce((s,l)=>s+Number(l.remaining),0);
+  const pendingTodos = state.todos.filter(t=>!t.done).length;
+
+  const tiles = [
+    { label:'Income', value:fmtShort(income), cls:'' },
+    { label:'Expense', value:fmtShort(expense), cls:'expense' },
+    { label:'Net balance', value:fmtShort(income-expense), cls:'plain' },
+    { label:'Set aside (money calc)', value:fmtShort(setAside), cls:'' },
+    { label:'Loans remaining', value:fmtShort(loanRemaining), cls:'loan' },
+    { label:'To-dos pending', value:pendingTodos, cls:'plain' },
+  ];
+  document.getElementById('tiles').innerHTML = tiles.map(t=>`
+    <div class="tile ${t.cls}"><div class="tile-label">${t.label}</div><div class="tile-value">${t.value}</div></div>
+  `).join('');
+
+  const activity = [];
+  state.txns.slice(0,8).forEach(t=>activity.push({ date:t.occurred_on, label:(t.category||(t.type==='income'?'Income':'Expense')), amt:t.amount, sign:t.type==='income'?1:-1 }));
+  state.loanPayments.slice(0,4).forEach(p=>{
+    const loan = state.loans.find(l=>l.id===p.loan_id);
+    activity.push({ date:p.paid_on, label:'Loan payment'+(loan?` — ${loan.name}`:''), amt:p.amount, sign:-1 });
+  });
+  activity.sort((a,b)=> new Date(b.date) - new Date(a.date));
+  const list = document.getElementById('recent-activity');
+  list.innerHTML = '';
+  if(activity.length===0){ list.innerHTML = '<p class="empty-note">Nothing logged yet. Start with a task, a transaction, or a loan.</p>'; return; }
+  activity.slice(0,8).forEach(a=>{
+    const row = document.createElement('div');
+    row.className = 'activity-row';
+    const d = new Date(a.date);
+    row.innerHTML = `<span>${a.label}</span><span class="a-amt ${a.sign>0?'pos':'neg'}">${a.sign>0?'+':'-'}${fmt(a.amt)}</span>`;
+    list.appendChild(row);
+  });
+}
+</script>
+
+</body>
+</html>
