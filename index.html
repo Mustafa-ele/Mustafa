@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Ledger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Dancing+Script:wght@500;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -16,6 +16,8 @@
     --slate:#4C6178; --slate-dark:#37485A; --slate-tint:#DCE4EA;
     --card:#FBF9F2; --border:#D8D2BF;
     --danger:#963B32;
+    --font-display:'Zilla Slab', serif;
+    --font-body:'IBM Plex Sans', sans-serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -24,10 +26,10 @@
       repeating-linear-gradient(var(--paper) 0px, var(--paper) 27px, var(--paper-line) 28px),
       var(--paper);
     color:var(--ink);
-    font-family:'IBM Plex Sans', sans-serif;
+    font-family:var(--font-body);
     min-height:100vh;
   }
-  h1,h2,h3{font-family:'Zilla Slab', serif; margin:0;}
+  h1,h2,h3{font-family:var(--font-display); margin:0;}
   button{
     font-family:'IBM Plex Mono', monospace;
     font-size:12px; letter-spacing:0.03em; text-transform:uppercase;
@@ -57,6 +59,7 @@
   .auth-box{
     background:var(--card); border:1px solid var(--border); border-radius:4px;
     padding:2rem 1.75rem; width:100%; max-width:360px;
+    position:relative;
   }
   .auth-box .eyebrow{font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:0.3rem;}
   .auth-box h1{font-size:30px; margin-bottom:1.4rem;}
@@ -67,13 +70,30 @@
   .auth-msg.err{color:var(--danger);}
   .auth-msg.ok{color:var(--sage-dark);}
 
+  /* ---------- THEME SWITCH ---------- */
+  .theme-switch{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    margin-bottom:1.3rem; font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft);
+  }
+  .theme-switch .pill{
+    display:flex; border:1px solid var(--border); border-radius:999px; overflow:hidden;
+  }
+  .theme-switch .pill button{
+    background:transparent; color:var(--ink-soft); text-transform:none; font-family:'IBM Plex Sans',sans-serif;
+    font-size:12.5px; padding:6px 14px; border-radius:0;
+  }
+  .theme-switch .pill button.active{background:var(--ink); color:var(--paper);}
+  header.top .theme-switch{margin:0;}
+  header.top .theme-switch .pill button.active{background:var(--ink); color:var(--paper);}
+
   /* ---------- APP SHELL ---------- */
   #app{display:none;}
   #app.visible{display:block;}
   header.top{
-    display:flex; align-items:center; justify-content:space-between;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
     padding:1.1rem 1.25rem; border-bottom:2px solid var(--ink);
     background:var(--paper);
+    position:relative;
   }
   header.top h1{font-size:24px;}
   header.top .user-email{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-soft); display:none;}
@@ -183,7 +203,7 @@
   /* ---------- LOANS ---------- */
   .loan-card{border:1px solid var(--border); border-radius:3px; padding:12px 14px; margin-bottom:10px; background:#fff;}
   .loan-card .loan-head{display:flex; justify-content:space-between; align-items:baseline;}
-  .loan-card .loan-name{font-family:'Zilla Slab', serif; font-size:17px; font-weight:600;}
+  .loan-card .loan-name{font-family:var(--font-display); font-size:17px; font-weight:600;}
   .loan-bar-track{height:8px; background:var(--paper-line); border-radius:4px; margin:8px 0 6px; overflow:hidden;}
   .loan-bar-fill{height:100%; background:var(--slate);}
   .loan-meta{display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--ink-soft);}
@@ -204,6 +224,61 @@
   .status.err{color:var(--danger);}
   .status.ok{color:var(--sage-dark);}
   .loading-line{font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-soft); padding:1rem 0;}
+
+  /* =================================================================
+     BLOOM THEME — soft floral palette, crochet-scalloped edges,
+     cursive logo, flower & butterfly touches
+  ================================================================= */
+  body.theme-bloom{
+    --paper:#FBEFF3; --paper-line:#F3D9E3;
+    --ink:#6B3F4B; --ink-soft:#A97C89;
+    --sage:#D98BA6; --sage-dark:#B96789; --sage-tint:#FBE4EC;
+    --rust:#B7A6D9; --rust-dark:#8C77B8; --rust-tint:#EDE6F7;
+    --slate:#E3B37A; --slate-dark:#C98F4E; --slate-tint:#FBEEDD;
+    --card:#FFFBFD; --border:#F0D2DE;
+    --danger:#C0607A;
+    --font-display:'Dancing Script', cursive;
+    --font-body:'Quicksand', sans-serif;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(217,139,166,0.10) 0, transparent 38%),
+      radial-gradient(circle at 88% 82%, rgba(183,166,217,0.12) 0, transparent 38%),
+      var(--paper);
+  }
+  body.theme-bloom h2.card-title{font-family:'Quicksand', sans-serif; font-weight:700;}
+  body.theme-bloom h1::after{ content:" \1F98B"; font-size:0.55em; vertical-align:middle; }
+  body.theme-bloom section.card, body.theme-bloom .auth-box{
+    border-radius:20px;
+    box-shadow:0 6px 20px rgba(185,103,137,0.12);
+  }
+  body.theme-bloom section.card::before, body.theme-bloom .auth-box::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:14px;
+    background-image: radial-gradient(circle at 12px 14px, transparent 11px, var(--card) 11px);
+    background-size: 24px 16px;
+    background-position: -4px -10px;
+  }
+  body.theme-bloom section.card::after{
+    content:"\1F338";
+    position:absolute; top:-11px; right:16px; font-size:19px; line-height:1;
+  }
+  body.theme-bloom .tile, body.theme-bloom .loan-card, body.theme-bloom .receipt, body.theme-bloom .shot{
+    border-radius:16px;
+  }
+  body.theme-bloom input, body.theme-bloom select, body.theme-bloom textarea{
+    border-radius:14px;
+  }
+  body.theme-bloom button{
+    border-radius:999px;
+    box-shadow:0 3px 8px rgba(185,103,137,0.22);
+  }
+  body.theme-bloom button.ghost{ box-shadow:none; }
+  body.theme-bloom .checkbox{ border-radius:50%; }
+  body.theme-bloom nav.side button.active{ border-left-color:var(--sage); }
+  body.theme-bloom nav.bottom button.active{ border-top-color:var(--sage); }
+  body.theme-bloom .empty-note::before{ content:"\1F338  "; }
+  body.theme-bloom .loan-bar-fill{ background:linear-gradient(90deg, var(--sage), var(--rust)); }
+  body.theme-bloom .type-toggle button.active.income{ background:var(--sage); }
+  body.theme-bloom .type-toggle button.active.expense{ background:var(--rust); }
 </style>
 </head>
 <body>
@@ -213,6 +288,12 @@
   <div class="auth-box">
     <p class="eyebrow">Personal ledger</p>
     <h1>My Ledger</h1>
+    <div class="theme-switch">
+      <div class="pill">
+        <button id="theme-classic-pre" class="active">Classic</button>
+        <button id="theme-bloom-pre">Bloom</button>
+      </div>
+    </div>
     <div class="auth-toggle">
       <button id="tab-signin" class="active">Sign in</button>
       <button id="tab-signup">Sign up</button>
@@ -234,8 +315,14 @@
 <div id="app">
   <header class="top">
     <h1>My Ledger</h1>
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
       <span class="user-email" id="user-email"></span>
+      <div class="theme-switch">
+        <div class="pill">
+          <button id="theme-classic" class="active">Classic</button>
+          <button id="theme-bloom">Bloom</button>
+        </div>
+      </div>
       <button class="ghost" id="logout-btn">Log out</button>
     </div>
   </header>
@@ -441,7 +528,7 @@ document.getElementById('auth-submit').onclick = async ()=>{
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if(error){ msg.textContent = error.message; msg.className='auth-msg err'; return; }
     }else{
-      const { error } = await sb.auth.signUp({ email, password });
+      const { error } = await sb.auth.signUp({ email, password, options:{ data:{ theme: document.body.classList.contains('theme-bloom') ? 'bloom' : 'classic' } } });
       if(error){ msg.textContent = error.message; msg.className='auth-msg err'; return; }
       msg.textContent = 'Account created. Check your email if confirmation is required, then sign in.';
       msg.className='auth-msg ok';
@@ -461,6 +548,7 @@ sb.auth.onAuthStateChange((_event, session)=>{
     document.getElementById('auth-screen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
     document.getElementById('user-email').textContent = state.userEmail;
+    applyTheme(session.user.user_metadata && session.user.user_metadata.theme ? session.user.user_metadata.theme : 'classic');
     loadEverything();
   }else{
     document.getElementById('auth-screen').style.display = 'flex';
@@ -469,6 +557,28 @@ sb.auth.onAuthStateChange((_event, session)=>{
     state.todos = []; state.moneyEntries = []; state.txns = []; state.loans = []; state.loanPayments = []; state.upi = [];
   }
 });
+
+// ---------------- THEME ----------------
+function applyTheme(theme){
+  document.body.classList.toggle('theme-bloom', theme === 'bloom');
+  document.querySelectorAll('#theme-classic-pre, #theme-classic').forEach(b=>b.classList.toggle('active', theme!=='bloom'));
+  document.querySelectorAll('#theme-bloom-pre, #theme-bloom').forEach(b=>b.classList.toggle('active', theme==='bloom'));
+  try{ localStorage.setItem('ledger-theme-preview', theme); }catch(e){}
+}
+async function setTheme(theme){
+  applyTheme(theme);
+  if(state.userId){
+    await sb.auth.updateUser({ data:{ theme } });
+  }
+}
+document.getElementById('theme-classic-pre').onclick = ()=>applyTheme('classic');
+document.getElementById('theme-bloom-pre').onclick = ()=>applyTheme('bloom');
+document.getElementById('theme-classic').onclick = ()=>setTheme('classic');
+document.getElementById('theme-bloom').onclick = ()=>setTheme('bloom');
+try{
+  const preview = localStorage.getItem('ledger-theme-preview');
+  if(preview) applyTheme(preview);
+}catch(e){}
 
 // ---------------- NAV ----------------
 function buildNav(){
@@ -689,7 +799,6 @@ async function addLoan(){
   if(!name || !principal || principal<=0){ flash('loan-status','Enter a name and principal amount.','err'); return; }
   const { error } = await sb.from('loans').insert({ user_id: state.userId, name, principal, remaining:principal, note:note||null });
   if(error){ flash('loan-status','Could not save.','err'); return; }
-  // Taking a loan is cash coming in — log it so it counts toward Net.
   await sb.from('transactions').insert({ user_id: state.userId, type:'income', category:'Loan received', amount:principal, note:`Loan: ${name}`, occurred_on:new Date().toISOString().slice(0,10) });
   document.getElementById('loan-name').value=''; document.getElementById('loan-principal').value=''; document.getElementById('loan-note').value='';
   flash('loan-status','Loan added.','ok');
@@ -706,7 +815,6 @@ async function payLoan(loanId){
   const { error:e1 } = await sb.from('loan_payments').insert({ user_id: state.userId, loan_id:loanId, amount });
   const { error:e2 } = await sb.from('loans').update({ remaining:newRemaining }).eq('id', loanId).eq('user_id', state.userId);
   if(e1||e2){ flash('loan-status','Could not save payment.','err'); return; }
-  // Paying a loan is cash going out — log it so it cuts from Net too.
   await sb.from('transactions').insert({ user_id: state.userId, type:'expense', category:'Loan repayment', amount, note:`Loan: ${loan.name}`, occurred_on:new Date().toISOString().slice(0,10) });
   await Promise.all([loadLoans(), loadTxns()]);
   if(state.currentView==='home') renderDashboard();
@@ -743,7 +851,6 @@ async function loadUpi(){
   const { data, error } = await sb.from('upi_screenshots').select('*').eq('user_id', state.userId).order('created_at', { ascending:false });
   if(error){ state.upi = []; renderUpi(); return; }
   state.upi = data || [];
-  const { data:{ user } } = await sb.auth.getUser();
   for(const shot of state.upi){
     const { data:signed } = await sb.storage.from('upi-screenshots').createSignedUrl(shot.image_path, 3600);
     shot._url = signed ? signed.signedUrl : '';
@@ -757,9 +864,8 @@ async function uploadUpi(){
   if(!file){ flash('upi-status','Choose an image first.','err'); return; }
   const amount = document.getElementById('upi-amount').value;
   const note = document.getElementById('upi-note').value.trim();
-  const { data:{ user } } = await sb.auth.getUser();
-  if(!user){ flash('upi-status','Not signed in.','err'); return; }
-  const path = `${user.id}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+  if(!state.userId){ flash('upi-status','Not signed in.','err'); return; }
+  const path = `${state.userId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
   const { error:upErr } = await sb.storage.from('upi-screenshots').upload(path, file);
   if(upErr){ flash('upi-status','Upload failed: '+upErr.message,'err'); return; }
   const { error:insErr } = await sb.from('upi_screenshots').insert({ user_id: state.userId, image_path:path, amount: amount?parseFloat(amount):null, note: note||null });
